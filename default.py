@@ -1,5 +1,5 @@
 import sys, os
-import xbmc, xbmcgui, xbmcplugin
+import xbmc, xbmcgui, xbmcaddon, xbmcplugin
 import unicodedata
 import urllib
 
@@ -13,25 +13,17 @@ MODE_HELP = 30
 # parameter keys
 PARAMETER_KEY_MODE = "mode"
 
-# menu item names
-FIRST_SUBMENU = "Unadded Movies"
-SECOND_SUBMENU = "Unadded TV Shows"
-HELP_SUBMENU = "Help!"
-
-# plugin handle
-# log("THESE ARE THE SYS ARGUMENTS: %s" % sys.argv, xbmc.LOGNOTICE)
-handle = int(sys.argv[1])
-
-FILE_EXTENSIONS = ['mpg', 'mpeg', 'avi', 'flv', 'wmv', 'mkv', '264', '3g2', '3gp', 'ifo', 'mp4', 'mov', 'iso', 'ogm']
-FILE_EXTENSIONS.extend(xbmcplugin.getSetting(handle, "custom_file_extensions").split(";"))
-
-OUTPUT_FILE = xbmcplugin.getSetting(handle, "output_dir") + xbmcplugin.getSetting(handle, "output_file");
-DEBUG = False
-if xbmcplugin.getSetting(handle, "debug") == "true":
-    DEBUG = True
+__addon__ = xbmcaddon.Addon(id='plugin.video.missingmovies')
+__addonid__ = __addon__.getAddonInfo('id')
+__scriptdebug__ = __addon__.getSetting("debug") == "true"
+__fileextensions__ = ['mpg', 'mpeg', 'avi', 'flv', 'wmv', 'mkv', '264', '3g2', '3gp', 'ifo', 'mp4', 'mov', 'iso', 'ogm']
+__fileextensions__.extend(__addon__.getSetting("custom_file_extensions").split(";"))
+__handle__ = int(sys.argv[1])
+__language__ = __addon__.getLocalizedString
+__outputfile__ = __addon__.getSetting("output_dir") + __addon__.getSetting("output_file");
 
 def log(txt, severity=xbmc.LOGDEBUG):
-    if DEBUG and severity == xbmc.LOGINFO:
+    if __scriptdebug__ and severity == xbmc.LOGINFO:
         severity = xbmc.LOGNOTICE
     try:
         message = (u"%s" % txt)
@@ -47,9 +39,10 @@ def remove_duplicates(files):
     return list(set(files))
 
 def output_to_file(list):
-    f = open(OUTPUT_FILE, 'a')
+    f = open(__outputfile__, 'a')
     for item in list:
-        f.write(item + u'\n')
+        file = item + '\n'
+        f.write(item.encode('utf8'))
     f.close()
 
 def get_sources():
@@ -71,8 +64,11 @@ def get_sources():
             for b in parts:
                 if b:
                     results.append(b)
+        elif s.startswith('smb://'):
+            log("%s is a Samba source, unsupported" % s, xbmc.LOGINFO)
+            xbmcgui.Dialog().ok(__language__(30203), s + __language__(30208), __language__(30204))
         else:
-            log("%s is a straight forward source, adding...", xbmc.LOGINFO)
+            log("%s is a straight forward source, adding..." % s, xbmc.LOGINFO)
             results.append(s)
 
     return results
@@ -118,7 +114,7 @@ def get_tv_files(show_errors):
             files.extend([ unicode(e['file'], 'utf8') for e in episodes ])
         except KeyError:
             if show_errors:
-                xbmcgui.Dialog().ok("ERROR!", "Could not retrieve episodes for %s!" % show_name, "Contact the developer if there actually are episodes!")
+                xbmcgui.Dialog().ok(__language__(30203), __language__(30207) + show_name, __language__(30204))
 
     return files
 
@@ -154,7 +150,7 @@ def get_files(path):
     results = []
     for root, sub_folders, files in os.walk(path):
         for f in files:
-            if file_has_extensions(f, FILE_EXTENSIONS):
+            if file_has_extensions(f, __fileextensions__):
                 f = os.path.join(root, f)
                 results.append(f)
 
@@ -180,23 +176,23 @@ def addDirectoryItem(name, isFolder=True, parameters={}, totalItems=1):
 
     if not isFolder:
         url  = name
-    return xbmcplugin.addDirectoryItem(handle=handle, url=url, listitem=li, isFolder=isFolder,totalItems=totalItems)
+    return xbmcplugin.addDirectoryItem(handle=__handle__, url=url, listitem=li, isFolder=isFolder,totalItems=totalItems)
 
 # UI builder functions
 def show_root_menu():
     ''' Show the plugin root menu. '''
-    addDirectoryItem(name=FIRST_SUBMENU, parameters={ PARAMETER_KEY_MODE: MODE_FIRST }, isFolder=True)
-    addDirectoryItem(name=SECOND_SUBMENU, parameters={ PARAMETER_KEY_MODE: MODE_SECOND }, isFolder=True)
-    addDirectoryItem(name=HELP_SUBMENU, parameters={ PARAMETER_KEY_MODE: MODE_HELP }, isFolder=True)
-    xbmcplugin.endOfDirectory(handle=handle, succeeded=True)
+    addDirectoryItem(name=__language__(30200), parameters={ PARAMETER_KEY_MODE: MODE_FIRST }, isFolder=True)
+    addDirectoryItem(name=__language__(30201), parameters={ PARAMETER_KEY_MODE: MODE_SECOND }, isFolder=True)
+    addDirectoryItem(name=__language__(30202), parameters={ PARAMETER_KEY_MODE: MODE_HELP }, isFolder=True)
+    xbmcplugin.endOfDirectory(handle=__handle__, succeeded=True)
 
 def show_movie_submenu():
     ''' Show movies missing from the library. '''
     movie_sources = remove_duplicates(get_movie_sources())
     if len(movie_sources) == 0 or len(movie_sources[0]) == 0:
-        xbmcgui.Dialog().ok("ERROR!", "Could not detect movie sources! Contact developer!")
+        xbmcgui.Dialog().ok(__language__(30203), __language__(30205) + __language__(30204))
         log("No movie sources!", xbmc.LOGERROR)
-        xbmcplugin.endOfDirectory(handle=handle, succeeded=False)
+        xbmcplugin.endOfDirectory(handle=__handle__, succeeded=False)
         return
 
     result = eval(xbmc.executeJSONRPC('{"jsonrpc": "2.0", "method": "VideoLibrary.GetMovies", "params":{"properties": ["file"]},  "id": 1}'))
@@ -257,7 +253,7 @@ def show_movie_submenu():
             log("missing movies: %s" % l, xbmc.LOGNOTICE)
             missing.extend(l)
 			
-    if OUTPUT_FILE:        
+    if __outputfile__:        
         output_to_file(missing);
     
     for movie_file in missing:
@@ -267,15 +263,15 @@ def show_movie_submenu():
         else:
             addDirectoryItem(movie_file, isFolder=False, totalItems=len(missing))
 
-    xbmcplugin.endOfDirectory(handle=handle, succeeded=True)
+    xbmcplugin.endOfDirectory(handle=__handle__, succeeded=True)
 
 def show_tvshow_submenu():
     ''' Show TV shows missing from the library. '''
     tv_sources = remove_duplicates(get_tv_sources())
     if len(tv_sources) == 0 or len(tv_sources[0]) == 0:
-        xbmcgui.Dialog().ok("ERROR!", "Could not detect TV sources! Contact developer if they do exist!")
+        xbmcgui.Dialog().ok(__language__(30203), __language__(30206) + __language__(30204))
         log("No TV sources!", xbmc.LOGERROR)
-        xbmcplugin.endOfDirectory(handle=handle, succeeded=False)
+        xbmcplugin.endOfDirectory(handle=__handle__, succeeded=False)
         return
 
     library_files = set(get_tv_files(True))
@@ -293,16 +289,16 @@ def show_tvshow_submenu():
             log("missing episodes: %s" % l, xbmc.LOGNOTICE)
             missing.extend(l)
 
-    if OUTPUT_FILE:
+    if __outputfile__:
         output_to_file(missing)
         
     for tv_file in missing:
         addDirectoryItem(tv_file, isFolder=False)
 
-    xbmcplugin.endOfDirectory(handle=handle, succeeded=True)
+    xbmcplugin.endOfDirectory(handle=__handle__, succeeded=True)
 
 def show_help():
-    xbmcgui.Dialog().ok("HELP!", "Add custom file types to settings.", "Then search!")
+    xbmcgui.Dialog().ok(__language__(30202), __language__(30209))
 
 # parameter values
 params = parameters_string_to_dict(sys.argv[2])
