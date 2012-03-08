@@ -2,6 +2,7 @@ import sys, os
 import xbmc, xbmcgui, xbmcaddon, xbmcplugin
 import unicodedata
 import urllib
+import re
 
 import datetime
 
@@ -20,7 +21,7 @@ __fileextensions__ = ['mpg', 'mpeg', 'avi', 'flv', 'wmv', 'mkv', '264', '3g2', '
 __fileextensions__.extend(__addon__.getSetting("custom_file_extensions").split(";"))
 __handle__ = int(sys.argv[1])
 __language__ = __addon__.getLocalizedString
-__outputfile__ = __addon__.getSetting("output_dir") + __addon__.getSetting("output_file");
+__outputfile__ = os.path.join(__addon__.getSetting("output_dir"), __addon__.getSetting("output_file"));
 
 def log(txt, severity=xbmc.LOGDEBUG):
     if __scriptdebug__ and severity == xbmc.LOGINFO:
@@ -42,12 +43,12 @@ def output_to_file(list):
     f = open(__outputfile__, 'a')
     for item in list:
         file = item + '\n'
-        f.write(item.encode('utf8'))
+        f.write(file.encode('utf8'))
     f.close()
 
 def get_sources():
     sources = eval(xbmc.executeJSONRPC('{"jsonrpc": "2.0", "method": "Files.GetSources", "params": {"media": "video"}, "id": 1}'))['result']['sources']
-    sources = [ unicode(s['file'], 'utf8') for s in sources ]
+    sources = [ unicode(xbmc.validatePath(s['file']), 'utf8') for s in sources ]
 
     results = []
     for s in sources:
@@ -63,10 +64,8 @@ def get_sources():
 
             for b in parts:
                 if b:
+                    log("%s is a straight forward source, adding.." % b, xbmc.LOGINFO)
                     results.append(b)
-        elif s.startswith('smb://'):
-            log("%s is a Samba source, unsupported" % s, xbmc.LOGINFO)
-            xbmcgui.Dialog().ok(__language__(30203), s + __language__(30208), __language__(30204))
         else:
             log("%s is a straight forward source, adding..." % s, xbmc.LOGINFO)
             results.append(s)
@@ -75,7 +74,9 @@ def get_sources():
 
 def get_movie_sources():
     result = eval(xbmc.executeJSONRPC('{"jsonrpc": "2.0", "method": "VideoLibrary.GetMovies", "params":{"properties": ["file"]},  "id": 1}'))
-    log(result, xbmc.LOGDEBUG)
+    if 'movies' not in result['result']:
+        return []
+        
     movies = result['result']['movies']
     log(movies, xbmc.LOGDEBUG)
     files = [ unicode(item['file'], 'utf8') for item in movies ]
@@ -86,8 +87,10 @@ def get_movie_sources():
 
     results = []
     for f in files:
-        for s in sources:
-            if f[-1] != os.sep:
+       for s in sources:
+            if f[-1] != '/':
+                f += '/'
+            elif f[-1] != os.sep:
                 f += os.sep
 
             if f.startswith(s):
@@ -100,6 +103,9 @@ def get_movie_sources():
 def get_tv_files(show_errors):
     result = eval(xbmc.executeJSONRPC('{"jsonrpc": "2.0", "method": "VideoLibrary.GetTVShows", "id": 1}'))
     log("VideoLibrary.GetTVShows results: %s" % result, xbmc.LOGDEBUG)
+    if 'tvshows' not in result['result']:
+        return []
+        
     tv_shows = result['result']['tvshows']
     files = []
 
@@ -141,19 +147,34 @@ def file_has_extensions(filename, extensions):
     extension = extension[1:].lower()
     extensions = [ f.lower() for f in extensions ]
 
-    if extension == 'ifo' and name != 'video_ts':
+    if extension == '' or (extension == 'ifo' and name != 'video_ts'):
         return False
 
     return extension in extensions
 
-def get_files(path):
-    results = []
-    for root, sub_folders, files in os.walk(path):
-        for f in files:
-            if file_has_extensions(f, __fileextensions__):
-                f = os.path.join(root, f)
-                results.append(f)
+def ends_on_sep(path):
+    if path[-1] == '/' or path[-1] == os.sep:
+        return True
+    return False
 
+def get_files(path):
+    path = path.replace("\\", "/")
+    
+    results = []
+    
+    #for some reason xbmc throws an exception when doing GetDirectory on an empty source directory. it works when one file is in there. so catch that
+    try:
+        result = eval(xbmc.executeJSONRPC('{"jsonrpc": "2.0", "method": "Files.GetDirectory", "params":{"directory": "%s"},  "id": 1}' % path))
+    except NameError:
+        return results
+    
+    for item in result['result']['files']:
+            f = item['file']
+            
+            if ends_on_sep(f):
+                results.extend(get_files(f))
+            elif file_has_extensions(f, __fileextensions__):
+                results.append(unicode(urllib.unquote(f), 'utf8'))
     return results
 
 # utility functions
@@ -190,7 +211,7 @@ def show_movie_submenu():
     ''' Show movies missing from the library. '''
     movie_sources = remove_duplicates(get_movie_sources())
     if len(movie_sources) == 0 or len(movie_sources[0]) == 0:
-        xbmcgui.Dialog().ok(__language__(30203), __language__(30205) + __language__(30204))
+        xbmcgui.Dialog().ok(__language__(30203), __language__(30205), __language__(30204))
         log("No movie sources!", xbmc.LOGERROR)
         xbmcplugin.endOfDirectory(handle=__handle__, succeeded=False)
         return
@@ -269,7 +290,7 @@ def show_tvshow_submenu():
     ''' Show TV shows missing from the library. '''
     tv_sources = remove_duplicates(get_tv_sources())
     if len(tv_sources) == 0 or len(tv_sources[0]) == 0:
-        xbmcgui.Dialog().ok(__language__(30203), __language__(30206) + __language__(30204))
+        xbmcgui.Dialog().ok(__language__(30203), __language__(30206), __language__(30204))
         log("No TV sources!", xbmc.LOGERROR)
         xbmcplugin.endOfDirectory(handle=__handle__, succeeded=False)
         return
