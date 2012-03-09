@@ -17,7 +17,7 @@ PARAMETER_KEY_MODE = "mode"
 __addon__ = xbmcaddon.Addon(id='plugin.video.missingmovies')
 __addonid__ = __addon__.getAddonInfo('id')
 __scriptdebug__ = __addon__.getSetting("debug") == "true"
-__fileextensions__ = ['mpg', 'mpeg', 'avi', 'flv', 'wmv', 'mkv', '264', '3g2', '3gp', 'ifo', 'mp4', 'mov', 'iso', 'ogm']
+__fileextensions__ = ['mpg', 'mpeg', 'avi', 'flv', 'wmv', 'mkv', '264', '3g2', '3gp', 'ifo', 'mp4', 'mov', 'iso', 'divx', 'ogm']
 __fileextensions__.extend(__addon__.getSetting("custom_file_extensions").split(";"))
 __handle__ = int(sys.argv[1])
 __language__ = __addon__.getLocalizedString
@@ -88,9 +88,9 @@ def get_movie_sources():
     results = []
     for f in files:
        for s in sources:
-            if f[-1] != '/':
+            if f[-1] != '/' and f.find('/') != -1:
                 f += '/'
-            elif f[-1] != os.sep:
+            elif f[-1] != os.sep and f.find(os.sep) != -1:
                 f += os.sep
 
             if f.startswith(s):
@@ -134,6 +134,11 @@ def get_tv_sources():
     results = []
     for f in files:
         for s in sources:
+            if f[-1] != '/' and f.find('/') != -1:
+                f += '/'
+            elif f[-1] != os.sep and f.find(os.sep) != -1:
+                f += os.sep
+                
             if f.startswith(s):
                 log("%s was confirmed as a TV source using %s" % (s, f), xbmc.LOGINFO)
                 results.append(s)
@@ -319,7 +324,7 @@ def show_tvshow_submenu():
     xbmcplugin.endOfDirectory(handle=__handle__, succeeded=True)
 
 def show_help():
-    xbmcgui.Dialog().ok(__language__(30202), __language__(30209))
+    xbmcgui.Dialog().ok(__language__(30202), __language__(30208))
 
 # parameter values
 params = parameters_string_to_dict(sys.argv[2])

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<strings>
+    <!-- Settings -->
+    <string id="30000">Uitvoermap</string>
+    <string id="30001">Uitvoerbestand</string>
+    <string id="30002">Debug</string>
+    <string id="30003">Diverse instellingen (semicolon delimited)</string>
+    <string id="30004">Extra bestandsextensies</string>
+    <!-- Script -->
+    <string id="30200">Ongescande films</string>
+    <string id="30201">Ongescande afleveringen</string>
+    <string id="30202">Help</string>
+    <string id="30203">Fout</string>
+    <string id="30204">Neem contact op met de ontwikkelaar als dit onverwacht is.</string>
+    <string id="30205">Geen filmbronnen gevonden!</string>
+    <string id="30206">Geen TV-bronnen gevonden!</string>
+    <string id="30207">Geen afleveringen gevonden voor </string>
+    <string id="30208">Voor hulp, stel vragen op het XBMC forum.</string>
+</strings>
+

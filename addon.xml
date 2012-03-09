@@ -12,16 +12,21 @@
   </extension>
   <extension point="xbmc.addon.metadata">
     <platform>all</platform>
-    <summary lang="en">MMV is a plugin for searching your source folders for videos not in the library..</summary>
- <description lang="en">Missing Movie Viewer searches your source folders for videos not present in the library and displays them for you to view or add to the library yourself.
+    <summary lang="en">MMV is a plugin for searching your source folders for videos not in the library.</summary>
+    <summary lang="nl">MMV is een plugin om je bronnen te scannen voor videos die niet in je bibliotheek aanwezig zijn.</summary>
+    <description lang="en">Missing Movie Viewer searches your source folders for videos not present in the library and displays them for you to view or add to the library yourself.
 
-Currently it has built in handle for the following file types:
-mpg, mpeg, avi, flv, wmv, mkv, 264, 3g2, 3gp, vob, mp4, mov, iso and ogm.
+Currently it has built in handle for the following file extensions:
+mpg, mpeg, avi, flv, wmv, mkv, 264, 3g2, 3gp, vob, mp4, mov, iso, divx and ogm.
 
 If you see any glaring errors or missing files that simply NEED to be in this list, let me know.
 
-Custom file extensions may be added via the settings menu.
+Extra file extensions may be added via the settings menu.</description>
+    <description lang="nl">Missing Movie Viewer doorzoekt je bronnen voor videobetanden die niet in je bibliotheek aanwezig zijn en laat ze aan je zien om te kijken of zelf aan de bibliotheek toe te voegen.
 
- </description>
+Het kan tegenwoordig de volgende bestandsextensies handle:
+mpg, mpeg, avi, flv, wmv, mkv, 264, 3g2, 3gp, vob, mp4, mov, iso, divx en ogm.
+
+Als je fouten tegenkomt of bestandsextensies mist die simpelweg op de lijst MOETEN staan, laat me dit dan weten.</description>
   </extension>
 </addon>
