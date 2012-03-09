@@ -72,6 +72,11 @@ def get_sources():
 
     return results
 
+def strip_username_password(s):
+    if s.find('@') != -1:
+        s = s[0:6] + s[s.find('@') + 1:]
+    return s
+    
 def get_movie_sources():
     result = eval(xbmc.executeJSONRPC('{"jsonrpc": "2.0", "method": "VideoLibrary.GetMovies", "params":{"properties": ["file"]},  "id": 1}'))
     if 'movies' not in result['result']:
@@ -92,7 +97,8 @@ def get_movie_sources():
                 f += '/'
             elif f[-1] != os.sep and f.find(os.sep) != -1:
                 f += os.sep
-
+            f = strip_username_password(f)
+            
             if f.startswith(s):
                 log("%s was confirmed as a movie source using %s" % (s, f), xbmc.LOGINFO)
                 results.append(s)
@@ -117,7 +123,7 @@ def get_tv_files(show_errors):
 		
         try:
             episodes = episode_result['result']['episodes']
-            files.extend([ unicode(e['file'], 'utf8') for e in episodes ])
+            files.extend([ strip_username_password(unicode(e['file'], 'utf8')) for e in episodes ])
         except KeyError:
             if show_errors:
                 xbmcgui.Dialog().ok(__language__(30203), __language__(30207) + show_name, __language__(30204))
@@ -138,6 +144,7 @@ def get_tv_sources():
                 f += '/'
             elif f[-1] != os.sep and f.find(os.sep) != -1:
                 f += os.sep
+            f = strip_username_password(f)
                 
             if f.startswith(s):
                 log("%s was confirmed as a TV source using %s" % (s, f), xbmc.LOGINFO)
@@ -179,7 +186,7 @@ def get_files(path):
             if ends_on_sep(f):
                 results.extend(get_files(f))
             elif file_has_extensions(f, __fileextensions__):
-                results.append(unicode(urllib.unquote(f), 'utf8'))
+                results.append(unicode(strip_username_password(urllib.unquote(f)), 'utf8'))
     return results
 
 # utility functions
@@ -239,11 +246,11 @@ def show_movie_submenu():
             sub_trailers =  []
 
             for item in set_files['result']['files']:
-                sub_files.append(unicode(item['file'], 'utf8'))
+                sub_files.append(strip_username_password(unicode(item['file'], 'utf8')))
                 try:
                     trailer = item['trailer']
                     if not trailer.startswith('http://'):
-                        library_files.append(unicode(trailer, 'utf8'))
+                        library_files.append(strip_username_password(unicode(trailer, 'utf8')))
                 except KeyError:
                     pass
 
@@ -253,16 +260,16 @@ def show_movie_submenu():
             f = f.replace('stack://', '')
             parts = f.split(' , ')
 
-            parts = [ unicode(f, 'utf8') for f in parts ]
+            parts = [ strip_username_password(unicode(f, 'utf8')) for f in parts ]
 
             for b in parts:
                 library_files.append(b)
         else:
-            library_files.append(unicode(f, 'utf8'))
+            library_files.append(strip_username_password(unicode(f, 'utf8')))
             try:
                 trailer = m['trailer']
                 if not trailer.startswith('http://'):
-                    library_files.append(unicode(trailer, 'utf8'))
+                    library_files.append(strip_username_password(unicode(trailer, 'utf8')))
             except KeyError:
                 pass
 
@@ -273,12 +280,13 @@ def show_movie_submenu():
 
         if not library_files.issuperset(movie_files):
             log("%s contains missing movies!" % movie_source, xbmc.LOGNOTICE)
-            log("library files: %s" % library_files, xbmc.LOGDEBUG)
             l = list(movie_files.difference(library_files))
             l.sort()
-            log("missing movies: %s" % l, xbmc.LOGNOTICE)
             missing.extend(l)
-			
+	
+    log("library files: %s" % library_files, xbmc.LOGINFO)
+    log("missing movies: %s" % l, xbmc.LOGNOTICE)
+    
     if __outputfile__:        
         output_to_file(missing);
     
@@ -309,11 +317,12 @@ def show_tvshow_submenu():
 
         if not library_files.issuperset(tv_files):
             log("%s contains missing TV shows!" % tv_source, xbmc.LOGNOTICE)
-            log("library files: %s" % library_files, xbmc.LOGDEBUG)
             l = list(tv_files.difference(library_files))
             l.sort()
-            log("missing episodes: %s" % l, xbmc.LOGNOTICE)
             missing.extend(l)
+            
+    log("library files: %s" % library_files, xbmc.LOGNOTICE)
+    log("missing episodes: %s" % l, xbmc.LOGNOTICE)
 
     if __outputfile__:
         output_to_file(missing)
