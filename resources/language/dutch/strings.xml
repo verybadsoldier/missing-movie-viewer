@@ -4,7 +4,7 @@
     <string id="30000">Uitvoermap</string>
     <string id="30001">Uitvoerbestand</string>
     <string id="30002">Debug</string>
-    <string id="30003">Diverse instellingen (semicolon delimited)</string>
+    <string id="30003">Diverse instellingen (met puntkommas gescheiden)</string>
     <string id="30004">Extra bestandsextensies</string>
     <!-- Script -->
     <string id="30200">Ongescande films</string>
