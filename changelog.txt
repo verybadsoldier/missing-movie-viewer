@@ -1,0 +1,66 @@
+[B]2.1.2[/B]
+- Fixed: Always use uppercase hostname for external sources
+- Changed: Better dutch translation
+- Added: Changelog since 2.0
+[B]2.1.1a[/B]
+- Fixed: Added actual changes
+[B]2.1.1[/B]
+- Changed: Rearranged settings menu
+- Changed: Moved logging to decrease log size\
+- Changed: Some strings
+- Added: Dutch translation
+- Added: Support for password protected sources
+[B]2.1.0[/B]
+- Fixed: Linux support
+- Fixed: Mistake in error messages
+- Changed: Add newline after every missing file in the output file
+- Added: Support for every XBMC source type
+[B]2.0.19[/B]
+- Fixed: Output to file
+- Changed: Some strings
+- Added: Use localised strings
+[B]2.0.18[/B]
+- Changed: Handle multi-path sources better
+- Added: Debug option in addon settings to reduce log size
+- Added: Support for non-ascii characters
+[B]2.0.17[/B]
+- Changed: Support for Eden
+[B]2.0.15[/B]
+- Changed: Cleaner filenames
+[B]2.0.14[/B]
+- Fixed: Fixed handling of split movies and sets
+- Fixed: Some naming errors
+- Added: ogm support
+- Changed: Addon description
+- Changed: Clean filenames
+- Changed: Faster duplicate removal
+- Changed: Removed error checking
+[B]2.0.13[/B]
+- Added: Simple error checking
+[B]2.0.12[/B]
+- Fixed: Bug in handling of split movies and sets
+- Changed: Trailer handling
+[B]2.0.11[/B]
+- Added: iso support
+[B]2.0.10[/B]
+- Fixed: Debugging in missing movies search
+[B]2.0.9[/B]
+- Fixed: Bug in missing movies and missing episode search
+[B]2.0.8[/B]
+- Added: Some debugging
+[B]2.0.7[/B]
+- Changed: Don't show could not retrieve episodes error twice
+[B]2.0.6[/B]
+- Changed: Don't check sources twice
+[B]2.0.5[/B]
+- Fixed: Another syntax error in missing movies search
+[B]2.0.4[/B]
+- Fixed: Syntax error in getting movieset files
+[B]2.0.3[/B]
+- Fixed: Syntax error in missing movies search
+[B]2.0.2[/B]
+- Fixed: Bugs regarding split movies and sets
+[B]2.0.1[/B]
+- Fixed: Bugs regarding trailers
+[B]2.0[/B]
+- Initial release

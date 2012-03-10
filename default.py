@@ -77,6 +77,12 @@ def strip_username_password(s):
         s = s[0:6] + s[s.find('@') + 1:]
     return s
     
+def capitalise_hostname(s):
+    startpos = s.find("://") + 3
+    endpos = s.find('/', startpos)
+    s = s[:startpos] + s[startpos:endpos].upper() + s[endpos:]
+    return s
+    
 def get_movie_sources():
     result = eval(xbmc.executeJSONRPC('{"jsonrpc": "2.0", "method": "VideoLibrary.GetMovies", "params":{"properties": ["file"]},  "id": 1}'))
     if 'movies' not in result['result']:
@@ -99,10 +105,14 @@ def get_movie_sources():
                 f += os.sep
             f = strip_username_password(f)
             
+            if s.find("://"):
+                capitalise_hostname(s)
+            
             if f.startswith(s):
                 log("%s was confirmed as a movie source using %s" % (s, f), xbmc.LOGINFO)
                 results.append(s)
                 sources.remove(s)
+                
                 
     return results
 
@@ -145,6 +155,9 @@ def get_tv_sources():
             elif f[-1] != os.sep and f.find(os.sep) != -1:
                 f += os.sep
             f = strip_username_password(f)
+                
+            if s.find("://"):
+                capitalise_hostname(s)
                 
             if f.startswith(s):
                 log("%s was confirmed as a TV source using %s" % (s, f), xbmc.LOGINFO)
@@ -276,6 +289,8 @@ def show_movie_submenu():
     library_files = set(library_files)
 
     for movie_source in movie_sources:
+        if movie_source.find("://"):
+                capitalise_hostname(movie_source)
         movie_files = set(get_files(movie_source))
 
         if not library_files.issuperset(movie_files):
@@ -313,6 +328,8 @@ def show_tvshow_submenu():
 
     log("SEARCHING TV SHOWS", xbmc.LOGNOTICE);
     for tv_source in tv_sources:
+        if tv_source.find("://"):
+            capitalise_hostname(tv_source)
         tv_files = set(get_files(tv_source))
 
         if not library_files.issuperset(tv_files):
