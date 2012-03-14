@@ -1,4 +1,6 @@
-[B]2.1.3[/B
+[B]2.1.3a[/B]
+- Fixed: Unicode error
+[B]2.1.3[/B]
 - Fixed: Swap case of hostname to verify if it really doesn't exist
 - Fixed: Some unicode errors
 - Fixed: Strip username and password the right way
