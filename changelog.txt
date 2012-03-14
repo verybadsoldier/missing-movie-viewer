@@ -2,7 +2,6 @@
 - Fixed: Swap case of hostname to verify if it really doesn't exist
 - Fixed: Some unicode errors
 - Fixed: Strip username and password the right way
-- Changed: Removed message in help that said SMB sources were unsupported
 [B]2.1.2[/B]
 - Fixed: Always use uppercase hostname for external sources
 - Changed: Better dutch translation
