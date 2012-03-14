@@ -33,55 +33,71 @@ def log(txt, severity=xbmc.LOGDEBUG):
         message = ("UnicodeEncodeError")
         xbmc.log(msg=message, level=xbmc.LOGWARNING) 
         
-log("MISSING MOVIE VIEWER STARTED.", xbmc.LOGNOTICE);
+def ends_on_sep(path):
+    if path[-1] == '/' or path[-1] == os.sep:
+        return True
+    return False
+
+def clean_path(s):
+    s = urllib.unquote(s)
+    s = strip_username_password(s)
+    s = unicode(s, 'utf-8')
+    return s
 
 def remove_duplicates(files):
     # converting it to a set and back drops all duplicates
     return list(set(files))
 
+def strip_username_password(s):
+    if s.find('@') != -1:
+        startpos = s.find("://") + 3
+        if s.startswith("rar://") or s.startswith("zip://"):
+            startpos = s.find("://", startpos) + 3
+        s = s[0:startpos] + s[s.find('@') + 1:]
+    return s
+    
+def swapcase_hostname(s):
+    startpos = s.find("://") + 3
+    if s.startswith("rar://") or s.startswith("zip://"):
+        startpos = s.find("://", startpos) + 3
+    endpos = s.find('/', startpos)
+    s = s[:startpos] + s[startpos:endpos].swapcase() + s[endpos:]
+    return s
+
 def output_to_file(list):
     f = open(__outputfile__, 'a')
     for item in list:
         file = item + '\n'
-        f.write(file.encode('utf8'))
+        f.write(file.encode('utf-8'))
     f.close()
 
 def get_sources():
     sources = eval(xbmc.executeJSONRPC('{"jsonrpc": "2.0", "method": "Files.GetSources", "params": {"media": "video"}, "id": 1}'))['result']['sources']
-    sources = [ unicode(xbmc.validatePath(s['file']), 'utf8') for s in sources ]
+    sources = [ xbmc.validatePath(s['file']) for s in sources ]
 
     results = []
     for s in sources:
         log("FOUND SOURCE: %s" % s, xbmc.LOGINFO)
         if s.startswith('addons://'):
+            s = clean_path(s)
             log("%s is an addon source, ignoring..." % s, xbmc.LOGINFO)
-            sources.remove(s)
         elif s.startswith('multipath://'):
             log("%s is a multipath source, splitting and adding individuals..." % s, xbmc.LOGINFO)
             s = s.replace('multipath://', '')
             parts = s.split('/')
-            parts = [ urllib.unquote(f) for f in parts ]
+            parts = [ f for f in parts ]
 
             for b in parts:
                 if b:
+                    b = clean_path(b)
                     log("%s is a straight forward source, adding.." % b, xbmc.LOGINFO)
                     results.append(b)
         else:
+            s = clean_path(s)
             log("%s is a straight forward source, adding..." % s, xbmc.LOGINFO)
             results.append(s)
 
     return results
-
-def strip_username_password(s):
-    if s.find('@') != -1:
-        s = s[0:6] + s[s.find('@') + 1:]
-    return s
-    
-def capitalise_hostname(s):
-    startpos = s.find("://") + 3
-    endpos = s.find('/', startpos)
-    s = s[:startpos] + s[startpos:endpos].upper() + s[endpos:]
-    return s
     
 def get_movie_sources():
     result = eval(xbmc.executeJSONRPC('{"jsonrpc": "2.0", "method": "VideoLibrary.GetMovies", "params":{"properties": ["file"]},  "id": 1}'))
@@ -89,10 +105,10 @@ def get_movie_sources():
         return []
         
     movies = result['result']['movies']
-    log(movies, xbmc.LOGDEBUG)
-    files = [ unicode(item['file'], 'utf8') for item in movies ]
-    files = [ os.path.dirname(f) for f in files ]
+    files = [ item['file'] for item in movies ]
+    files = [ clean_path(os.path.dirname(f)) for f in files ]
     files = remove_duplicates(files)
+    log(files, xbmc.LOGINFO)
 
     sources = remove_duplicates(get_sources())
 
@@ -103,14 +119,14 @@ def get_movie_sources():
                 f += '/'
             elif f[-1] != os.sep and f.find(os.sep) != -1:
                 f += os.sep
-            f = strip_username_password(f)
-            
-            if s.find("://"):
-                capitalise_hostname(s)
             
             if f.startswith(s):
                 log("%s was confirmed as a movie source using %s" % (s, f), xbmc.LOGINFO)
                 results.append(s)
+                sources.remove(s)
+            elif f.startswith(swapcase_hostname(s)):
+                log("%s was confirmed as a movie source using %s" % (swapcase_hostname(s), f), xbmc.LOGINFO)
+                results.append(swapcase_hostname(s))
                 sources.remove(s)
                 
                 
@@ -118,7 +134,6 @@ def get_movie_sources():
 
 def get_tv_files(show_errors):
     result = eval(xbmc.executeJSONRPC('{"jsonrpc": "2.0", "method": "VideoLibrary.GetTVShows", "id": 1}'))
-    log("VideoLibrary.GetTVShows results: %s" % result, xbmc.LOGDEBUG)
     if 'tvshows' not in result['result']:
         return []
         
@@ -130,10 +145,10 @@ def get_tv_files(show_errors):
         show_name = tv_show['label']
 
         episode_result = eval(xbmc.executeJSONRPC('{"jsonrpc": "2.0", "method": "VideoLibrary.GetEpisodes", "params": {"tvshowid": %d, "properties": ["file"]}, "id": 1}' % show_id))
-		
+
         try:
             episodes = episode_result['result']['episodes']
-            files.extend([ strip_username_password(unicode(e['file'], 'utf8')) for e in episodes ])
+            files.extend([ clean_path(e['file']) for e in episodes ])
         except KeyError:
             if show_errors:
                 xbmcgui.Dialog().ok(__language__(30203), __language__(30207) + show_name, __language__(30204))
@@ -154,10 +169,6 @@ def get_tv_sources():
                 f += '/'
             elif f[-1] != os.sep and f.find(os.sep) != -1:
                 f += os.sep
-            f = strip_username_password(f)
-                
-            if s.find("://"):
-                capitalise_hostname(s)
                 
             if f.startswith(s):
                 log("%s was confirmed as a TV source using %s" % (s, f), xbmc.LOGINFO)
@@ -177,29 +188,27 @@ def file_has_extensions(filename, extensions):
 
     return extension in extensions
 
-def ends_on_sep(path):
-    if path[-1] == '/' or path[-1] == os.sep:
-        return True
-    return False
-
 def get_files(path):
     path = path.replace("\\", "/")
-    
     results = []
     
     #for some reason xbmc throws an exception when doing GetDirectory on an empty source directory. it works when one file is in there. so catch that
     try:
-        result = eval(xbmc.executeJSONRPC('{"jsonrpc": "2.0", "method": "Files.GetDirectory", "params":{"directory": "%s"},  "id": 1}' % path))
+        json = '{"jsonrpc": "2.0", "method": "Files.GetDirectory", "params":{"directory": "' + path + u'"},  "id": 1}'
+        result = eval(xbmc.executeJSONRPC(json.encode('utf-8')))
+        if 'result' not in result:
+            json = '{"jsonrpc": "2.0", "method": "Files.GetDirectory", "params":{"directory": "' + swapcase_hostname(path) + u'"},  "id": 1}'
+            result = eval(xbmc.executeJSONRPC(json.encode('utf-8')))
     except NameError:
         return results
     
     for item in result['result']['files']:
-            f = item['file']
+            f = clean_path(item['file'])
             
-            if ends_on_sep(f):
+            if ends_on_sep(f) and not f.startswith("zip://") and not f.startswith("rar://"):
                 results.extend(get_files(f))
             elif file_has_extensions(f, __fileextensions__):
-                results.append(unicode(strip_username_password(urllib.unquote(f)), 'utf8'))
+                results.append(f)
     return results
 
 # utility functions
@@ -250,20 +259,21 @@ def show_movie_submenu():
     log("SEARCHING MOVIES", xbmc.LOGNOTICE)
     # this magic section adds the files from trailers and sets!
     for m in movies:
-        f = m['file']
+        f = clean_path(m['file'])
 
         if f.startswith("videodb://"):
-            set_files = eval(xbmc.executeJSONRPC('{"jsonrpc": "2.0", "method": "Files.GetDirectory", "params": {"directory": "%s"}, "id": 1}' % f))
+            json = '{"jsonrpc": "2.0", "method": "Files.GetDirectory", "params": {"directory": "' + f + '"}, "id": 1}'
+            set_files = eval(xbmc.executeJSONRPC(json.encode('utf-8')))
 
             sub_files = []
             sub_trailers =  []
 
             for item in set_files['result']['files']:
-                sub_files.append(strip_username_password(unicode(item['file'], 'utf8')))
+                sub_files.append(clean_path(item['file']))
                 try:
                     trailer = item['trailer']
                     if not trailer.startswith('http://'):
-                        library_files.append(strip_username_password(unicode(trailer, 'utf8')))
+                        library_files.append(clean_path(trailer))
                 except KeyError:
                     pass
 
@@ -273,24 +283,22 @@ def show_movie_submenu():
             f = f.replace('stack://', '')
             parts = f.split(' , ')
 
-            parts = [ strip_username_password(unicode(f, 'utf8')) for f in parts ]
+            parts = [ f for f in parts ]
 
             for b in parts:
-                library_files.append(b)
+                library_files.append(clean_path(b))
         else:
-            library_files.append(strip_username_password(unicode(f, 'utf8')))
+            library_files.append(f)
             try:
                 trailer = m['trailer']
                 if not trailer.startswith('http://'):
-                    library_files.append(strip_username_password(unicode(trailer, 'utf8')))
+                    library_files.append(clean_path(trailer))
             except KeyError:
                 pass
 
     library_files = set(library_files)
 
     for movie_source in movie_sources:
-        if movie_source.find("://"):
-                capitalise_hostname(movie_source)
         movie_files = set(get_files(movie_source))
 
         if not library_files.issuperset(movie_files):
@@ -298,7 +306,7 @@ def show_movie_submenu():
             l = list(movie_files.difference(library_files))
             l.sort()
             missing.extend(l)
-	
+
     log("library files: %s" % library_files, xbmc.LOGINFO)
     log("missing movies: %s" % l, xbmc.LOGNOTICE)
     
@@ -328,8 +336,6 @@ def show_tvshow_submenu():
 
     log("SEARCHING TV SHOWS", xbmc.LOGNOTICE);
     for tv_source in tv_sources:
-        if tv_source.find("://"):
-            capitalise_hostname(tv_source)
         tv_files = set(get_files(tv_source))
 
         if not library_files.issuperset(tv_files):
@@ -338,7 +344,7 @@ def show_tvshow_submenu():
             l.sort()
             missing.extend(l)
             
-    log("library files: %s" % library_files, xbmc.LOGNOTICE)
+    log("library files: %s" % library_files, xbmc.LOGINFO)
     log("missing episodes: %s" % l, xbmc.LOGNOTICE)
 
     if __outputfile__:
@@ -359,6 +365,7 @@ mode = int(params.get(PARAMETER_KEY_MODE, "0"))
 # Depending on the mode, call the appropriate function to build the UI.
 if not sys.argv[2]:
     # new start
+    log("MISSING MOVIE VIEWER STARTED.", xbmc.LOGNOTICE);
     ok = show_root_menu()
 elif mode == MODE_FIRST:
     ok = show_movie_submenu()
