@@ -286,7 +286,7 @@ def show_movie_submenu():
             parts = [ f for f in parts ]
 
             for b in parts:
-                library_files.append(clean_path(b))
+                library_files.append(b)
         else:
             library_files.append(f)
             try:
