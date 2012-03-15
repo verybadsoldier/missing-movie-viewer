@@ -308,7 +308,7 @@ def show_movie_submenu():
             missing.extend(l)
 
     log("library files: %s" % library_files, xbmc.LOGINFO)
-    log("missing movies: %s" % l, xbmc.LOGNOTICE)
+    log("missing movies: %s" % missing, xbmc.LOGNOTICE)
     
     if __outputfile__:        
         output_to_file(missing);
@@ -345,7 +345,7 @@ def show_tvshow_submenu():
             missing.extend(l)
             
     log("library files: %s" % library_files, xbmc.LOGINFO)
-    log("missing episodes: %s" % l, xbmc.LOGNOTICE)
+    log("missing episodes: %s" % missing, xbmc.LOGNOTICE)
 
     if __outputfile__:
         output_to_file(missing)
