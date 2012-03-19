@@ -32,7 +32,10 @@ def log(txt, severity=xbmc.LOGDEBUG):
     except UnicodeEncodeError:
         message = ("UnicodeEncodeError")
         xbmc.log(msg=message, level=xbmc.LOGWARNING) 
-        
+
+def string_startswith_case_insensitive(stringA, stringB):
+    return stringA.lower().startswith( stringB.lower() )
+
 def ends_on_sep(path):
     if path[-1] == '/' or path[-1] == os.sep:
         return True
@@ -54,14 +57,6 @@ def strip_username_password(s):
         if s.startswith("rar://") or s.startswith("zip://"):
             startpos = s.find("://", startpos) + 3
         s = s[0:startpos] + s[s.find('@') + 1:]
-    return s
-    
-def swapcase_hostname(s):
-    startpos = s.find("://") + 3
-    if s.startswith("rar://") or s.startswith("zip://"):
-        startpos = s.find("://", startpos) + 3
-    endpos = s.find('/', startpos)
-    s = s[:startpos] + s[startpos:endpos].swapcase() + s[endpos:]
     return s
 
 def output_to_file(list):
@@ -103,9 +98,11 @@ def get_movie_sources():
     result = eval(xbmc.executeJSONRPC('{"jsonrpc": "2.0", "method": "VideoLibrary.GetMovies", "params":{"properties": ["file"]},  "id": 1}'))
     if 'movies' not in result['result']:
         return []
+      
+    files = []
+    for item in result['result']['movies']:
+        files.extend( decode_stacked( item['file'] ) )  #handle possibly stacked movies here
         
-    movies = result['result']['movies']
-    files = [ item['file'] for item in movies ]
     files = [ clean_path(os.path.dirname(f)) for f in files ]
     files = remove_duplicates(files)
     log(files, xbmc.LOGINFO)
@@ -120,16 +117,11 @@ def get_movie_sources():
             elif f[-1] != os.sep and f.find(os.sep) != -1:
                 f += os.sep
             
-            if f.startswith(s):
+            if string_startswith_case_insensitive(f,s):
                 log("%s was confirmed as a movie source using %s" % (s, f), xbmc.LOGINFO)
-                results.append(s)
+                results.append(f[:len(s)])
                 sources.remove(s)
-            elif f.startswith(swapcase_hostname(s)):
-                log("%s was confirmed as a movie source using %s" % (swapcase_hostname(s), f), xbmc.LOGINFO)
-                results.append(swapcase_hostname(s))
-                sources.remove(s)
-                
-                
+                            
     return results
 
 def get_tv_files(show_errors):
@@ -170,9 +162,9 @@ def get_tv_sources():
             elif f[-1] != os.sep and f.find(os.sep) != -1:
                 f += os.sep
                 
-            if f.startswith(s):
+            if string_startswith_case_insensitive(f,s):
                 log("%s was confirmed as a TV source using %s" % (s, f), xbmc.LOGINFO)
-                results.append(s)
+                results.append(f[:len(s)])
                 sources.remove(s)
     return results
 
@@ -196,9 +188,6 @@ def get_files(path):
     try:
         json = '{"jsonrpc": "2.0", "method": "Files.GetDirectory", "params":{"directory": "' + path + u'"},  "id": 1}'
         result = eval(xbmc.executeJSONRPC(json.encode('utf-8')))
-        if 'result' not in result:
-            json = '{"jsonrpc": "2.0", "method": "Files.GetDirectory", "params":{"directory": "' + swapcase_hostname(path) + u'"},  "id": 1}'
-            result = eval(xbmc.executeJSONRPC(json.encode('utf-8')))
     except NameError:
         return results
     
@@ -241,6 +230,13 @@ def show_root_menu():
     addDirectoryItem(name=__language__(30202), parameters={ PARAMETER_KEY_MODE: MODE_HELP }, isFolder=True)
     xbmcplugin.endOfDirectory(handle=__handle__, succeeded=True)
 
+def decode_stacked(s):
+    parts = [ s ]
+    if s.startswith('stack://'):
+        s = s.replace('stack://', '')
+        parts = s.split(' , ')
+    return parts
+     
 def show_movie_submenu():
     ''' Show movies missing from the library. '''
     movie_sources = remove_duplicates(get_movie_sources())
@@ -280,13 +276,7 @@ def show_movie_submenu():
             library_files.extend(sub_files)
             library_files.extend(sub_trailers)
         elif f.startswith('stack://'):
-            f = f.replace('stack://', '')
-            parts = f.split(' , ')
-
-            parts = [ f for f in parts ]
-
-            for b in parts:
-                library_files.append(b)
+            library_files.extend( decode_stacked(f) )
         else:
             library_files.append(f)
             try:

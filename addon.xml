@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="plugin.video.missingmovies"
        name="Missing Movie Viewer"
-       version="2.1.3b"
-       provider-name="Nathan Hoad">
+       version="2.1.3c-devkid"
+       provider-name="Nathan Hoad, devkid, Sentir101">
   <requires>
     <import addon="xbmc.python" version="1.0"/>
   </requires>

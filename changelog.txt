@@ -1,3 +1,6 @@
+[B]2.1.3c-devkid[/B]
+- Fixed: Case problem (hopefully for real)
+- Fixed: Problem with stacked sources
 [B]2.1.3b[/B]
 - Fixed: Output the right missing list to the log (fixes crash when there is nothing missing)
 [B]2.1.3a[/B]
