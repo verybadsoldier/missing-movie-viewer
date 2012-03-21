@@ -16,5 +16,19 @@
     <string id="30206">No TV sources found!</string>
     <string id="30207">No episodes found for </string>
     <string id="30208">Ask questions on the XBMC forum if you need help.</string>
+    <string id="30209">Getting episodes for </string>
+    <string id="30210">Scanned: </string>
+    <string id="30211"> directories, </string>
+    <string id="30212"> files</string>
+    <string id="30213">Path: </string>
+    <string id="30214">Scan running</string>
+    <string id="30215">Scan started</string>
+    <string id="30216">Getting movie sources</string>
+    <string id="30217">Getting movies</string>
+    <string id="30218">Getting missing movies</string>
+    <string id="30219">Populating list</string>
+    <string id="30220">Getting TV sources</string>
+    <string id="30221">Getting episodes</string>
+    <string id="30222">Getting missing episodes</string>
 </strings>
 

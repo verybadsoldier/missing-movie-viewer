@@ -1,3 +1,6 @@
+[B]2.2.0[/B]
+- Added: Progress updates during scans
+- Added: Strings for the progress updates for Dutch and English
 [B]2.1.3c-devkid[/B]
 - Fixed: Case problem (hopefully for real)
 - Fixed: Problem with stacked sources

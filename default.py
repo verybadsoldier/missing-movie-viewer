@@ -22,6 +22,8 @@ __fileextensions__.extend(__addon__.getSetting("custom_file_extensions").split("
 __handle__ = int(sys.argv[1])
 __language__ = __addon__.getLocalizedString
 __outputfile__ = os.path.join(__addon__.getSetting("output_dir"), __addon__.getSetting("output_file"));
+__dircount__ = 0
+__filecount__ = 0
 
 def log(txt, severity=xbmc.LOGDEBUG):
     if __scriptdebug__ and severity == xbmc.LOGINFO:
@@ -124,7 +126,7 @@ def get_movie_sources():
                             
     return results
 
-def get_tv_files(show_errors):
+def get_tv_files(called_from_tv_menu, progress, done):
     result = eval(xbmc.executeJSONRPC('{"jsonrpc": "2.0", "method": "VideoLibrary.GetTVShows", "id": 1}'))
     if 'tvshows' not in result['result']:
         return []
@@ -135,6 +137,7 @@ def get_tv_files(show_errors):
     for tv_show in tv_shows:
         show_id = tv_show['tvshowid']
         show_name = tv_show['label']
+        progress.update(done, __language__(30209) + show_name) 
 
         episode_result = eval(xbmc.executeJSONRPC('{"jsonrpc": "2.0", "method": "VideoLibrary.GetEpisodes", "params": {"tvshowid": %d, "properties": ["file"]}, "id": 1}' % show_id))
 
@@ -142,13 +145,13 @@ def get_tv_files(show_errors):
             episodes = episode_result['result']['episodes']
             files.extend([ clean_path(e['file']) for e in episodes ])
         except KeyError:
-            if show_errors:
+            if called_from_tv_menu and __scriptdebug__:
                 xbmcgui.Dialog().ok(__language__(30203), __language__(30207) + show_name, __language__(30204))
 
     return files
 
-def get_tv_sources():
-    files = get_tv_files(False)
+def get_tv_sources(progress, done):
+    files = get_tv_files(False, progress, done)
     files = [ os.path.dirname(f) for f in files ]
     files = remove_duplicates(files)
 
@@ -166,6 +169,7 @@ def get_tv_sources():
                 log("%s was confirmed as a TV source using %s" % (s, f), xbmc.LOGINFO)
                 results.append(f[:len(s)])
                 sources.remove(s)
+
     return results
 
 def file_has_extensions(filename, extensions):
@@ -180,24 +184,33 @@ def file_has_extensions(filename, extensions):
 
     return extension in extensions
 
-def get_files(path):
+def get_files(path, progress, done):
+    global __dircount__
+    global __filecount__
+    __dircount__ += 1
     path = path.replace("\\", "/")
     results = []
     
+    progress.update(done, __language__(30210) + str(__dircount__) + __language__(30211) + str(__filecount__) + __language__(30212), __language__(30213) + path)
+
     #for some reason xbmc throws an exception when doing GetDirectory on an empty source directory. it works when one file is in there. so catch that
     try:
         json = '{"jsonrpc": "2.0", "method": "Files.GetDirectory", "params":{"directory": "' + path + u'"},  "id": 1}'
         result = eval(xbmc.executeJSONRPC(json.encode('utf-8')))
     except NameError:
         return results
-    
+
     for item in result['result']['files']:
             f = clean_path(item['file'])
             
             if ends_on_sep(f) and not f.startswith("zip://") and not f.startswith("rar://"):
-                results.extend(get_files(f))
+                results.extend(get_files(f, progress, done))
             elif file_has_extensions(f, __fileextensions__):
+                __filecount__ += 1
                 results.append(f)
+
+            progress.update(done, __language__(30210) + str(__dircount__) + __language__(30211) + str(__filecount__) + __language__(30212), __language__(30213) + path)
+
     return results
 
 # utility functions
@@ -239,6 +252,13 @@ def decode_stacked(s):
      
 def show_movie_submenu():
     ''' Show movies missing from the library. '''
+
+    xbmc.executebuiltin("Dialog.Close(busydialog)")
+    progress = xbmcgui.DialogProgress()
+    progress.create(__language__(30214), __language__(30215))
+
+    done = 0
+    progress.update(done, __language__(30216))
     movie_sources = remove_duplicates(get_movie_sources())
     if len(movie_sources) == 0 or len(movie_sources[0]) == 0:
         xbmcgui.Dialog().ok(__language__(30203), __language__(30205), __language__(30204))
@@ -252,6 +272,8 @@ def show_movie_submenu():
     library_files = []
     missing = []
 
+    done = 10
+    progress.update(done, __language__(30217))
     log("SEARCHING MOVIES", xbmc.LOGNOTICE)
     # this magic section adds the files from trailers and sets!
     for m in movies:
@@ -287,9 +309,11 @@ def show_movie_submenu():
                 pass
 
     library_files = set(library_files)
-
+    
+    done = 50
+    progress.update(done, __language__(30218))
     for movie_source in movie_sources:
-        movie_files = set(get_files(movie_source))
+        movie_files = set(get_files(movie_source, progress, done))
 
         if not library_files.issuperset(movie_files):
             log("%s contains missing movies!" % movie_source, xbmc.LOGNOTICE)
@@ -297,51 +321,64 @@ def show_movie_submenu():
             l.sort()
             missing.extend(l)
 
-    log("library files: %s" % library_files, xbmc.LOGINFO)
-    log("missing movies: %s" % missing, xbmc.LOGNOTICE)
-    
-    if __outputfile__:        
-        output_to_file(missing);
-    
+    done = 90
+    progress.update(done, __language__(30219))
     for movie_file in missing:
         # get the end of the filename without the extension
         if os.path.splitext(movie_file.lower())[0].endswith("trailer"):
             log("%s is a trailer and will be ignored!" % movie_file, xbmc.LOGINFO)
+            missing.remove(movie_file)
         else:
             addDirectoryItem(movie_file, isFolder=False, totalItems=len(missing))
+
+    if __outputfile__:        
+        output_to_file(missing);
 
     xbmcplugin.endOfDirectory(handle=__handle__, succeeded=True)
 
 def show_tvshow_submenu():
     ''' Show TV shows missing from the library. '''
-    tv_sources = remove_duplicates(get_tv_sources())
+
+    xbmc.executebuiltin("Dialog.Close(busydialog)")
+    progress = xbmcgui.DialogProgress()
+    progress.create(__language__(30214), __language__(30215))
+
+    done = 0
+    progress.update(0, __language__(30220))
+    tv_sources = remove_duplicates(get_tv_sources(progress, done))
     if len(tv_sources) == 0 or len(tv_sources[0]) == 0:
         xbmcgui.Dialog().ok(__language__(30203), __language__(30206), __language__(30204))
         log("No TV sources!", xbmc.LOGERROR)
         xbmcplugin.endOfDirectory(handle=__handle__, succeeded=False)
         return
 
-    library_files = set(get_tv_files(True))
+    done = 10
+    progress.update(done, __language__(30221))
+    library_files = set(get_tv_files(True, progress, done))
     missing = []
 
+    done = 50
+    progress.update(done, __language__(30222))
     log("SEARCHING TV SHOWS", xbmc.LOGNOTICE);
     for tv_source in tv_sources:
-        tv_files = set(get_files(tv_source))
+        tv_files = set(get_files(tv_source, progress, done))
 
         if not library_files.issuperset(tv_files):
             log("%s contains missing TV shows!" % tv_source, xbmc.LOGNOTICE)
             l = list(tv_files.difference(library_files))
             l.sort()
             missing.extend(l)
-            
+
+    done = 90    
+    progress.update(done, __language__(30219))
+    for tv_file in missing:
+        addDirectoryItem(tv_file, isFolder=False)
+
     log("library files: %s" % library_files, xbmc.LOGINFO)
     log("missing episodes: %s" % missing, xbmc.LOGNOTICE)
 
     if __outputfile__:
         output_to_file(missing)
-        
-    for tv_file in missing:
-        addDirectoryItem(tv_file, isFolder=False)
 
     xbmcplugin.endOfDirectory(handle=__handle__, succeeded=True)
 
