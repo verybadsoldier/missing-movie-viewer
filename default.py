@@ -137,7 +137,7 @@ def get_tv_files(called_from_tv_menu, progress, done):
     for tv_show in tv_shows:
         show_id = tv_show['tvshowid']
         show_name = tv_show['label']
-        progress.update(done, __language__(30209) + show_name) 
+        progress.update(done, __language__(30209).encode('utf-8') + show_name.encode('utf-8')) 
 
         episode_result = eval(xbmc.executeJSONRPC('{"jsonrpc": "2.0", "method": "VideoLibrary.GetEpisodes", "params": {"tvshowid": %d, "properties": ["file"]}, "id": 1}' % show_id))
 
@@ -191,7 +191,7 @@ def get_files(path, progress, done):
     path = path.replace("\\", "/")
     results = []
     
-    progress.update(done, __language__(30210) + str(__dircount__) + __language__(30211) + str(__filecount__) + __language__(30212), __language__(30213) + path)
+    progress.update(done, __language__(30210) + str(__dircount__) + __language__(30211) + str(__filecount__) + __language__(30212), __language__(30213).encode('utf-8') + path.encode('utf-8'))
 
     #for some reason xbmc throws an exception when doing GetDirectory on an empty source directory. it works when one file is in there. so catch that
     try:
@@ -209,7 +209,7 @@ def get_files(path, progress, done):
                 __filecount__ += 1
                 results.append(f)
 
-            progress.update(done, __language__(30210) + str(__dircount__) + __language__(30211) + str(__filecount__) + __language__(30212), __language__(30213) + path)
+            progress.update(done, __language__(30210) + str(__dircount__) + __language__(30211) + str(__filecount__) + __language__(30212), __language__(30213).encode('utf-8') + path.encode('utf-8'))
 
     return results
 
