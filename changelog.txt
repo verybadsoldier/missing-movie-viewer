@@ -1,3 +1,9 @@
+[B]2.2.3[/B]
+- Fixed: Attempt to fix the Unicode problem in the TV progress dialog
+- Fixed: Don't crash if XBMC doesn't return anything
+- Added: Also check for trailers in stacks
+- Added: Some debug logging to help fix the Unicode problem in the TV progress dialog
+- Added: Some debug logging for trailers
 [B]2.2.2[/B]
 - Fixed: Attempt to fix the Unicode problem in the TV progress dialog
 [B]2.2.1[/B]

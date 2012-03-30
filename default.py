@@ -69,10 +69,14 @@ def output_to_file(list):
     f.close()
 
 def get_sources():
-    sources = eval(xbmc.executeJSONRPC('{"jsonrpc": "2.0", "method": "Files.GetSources", "params": {"media": "video"}, "id": 1}'))['result']['sources']
+    results = []
+    result = eval(xbmc.executeJSONRPC('{"jsonrpc": "2.0", "method": "Files.GetSources", "params": {"media": "video"}, "id": 1}'))
+    if 'sources' not in result['result']:
+        return results
+
+    sources = result['result']['sources']
     sources = [ xbmc.validatePath(s['file']) for s in sources ]
 
-    results = []
     for s in sources:
         log("FOUND SOURCE: %s" % s, xbmc.LOGINFO)
         if s.startswith('addons://'):
@@ -136,8 +140,10 @@ def get_tv_files(called_from_tv_menu, progress, done):
 
     for tv_show in tv_shows:
         show_id = tv_show['tvshowid']
-        show_name = tv_show['label']
+        show_name = clean_path(tv_show['label'])
+        log("%s" % show_name, xbmc.LOGINFO)
         displaystring = __language__(30209) + show_name
+        log("%s" % displaystring, xbmc.LOGINFO)
         progress.update(done, displaystring.encode('utf-8')) 
 
         episode_result = eval(xbmc.executeJSONRPC('{"jsonrpc": "2.0", "method": "VideoLibrary.GetEpisodes", "params": {"tvshowid": %d, "properties": ["file"]}, "id": 1}' % show_id))
@@ -201,6 +207,8 @@ def get_files(path, progress, done):
         json = '{"jsonrpc": "2.0", "method": "Files.GetDirectory", "params":{"directory": "' + path + u'"},  "id": 1}'
         result = eval(xbmc.executeJSONRPC(json.encode('utf-8')))
     except NameError:
+        return results
+    if 'files' not in result['result']:
         return results
 
     for item in result['result']['files']:
@@ -294,6 +302,7 @@ def show_movie_submenu():
                 try:
                     trailer = item['trailer']
                     if not trailer.startswith('http://'):
+                        log("Found a trailer", xbmc.LOGINFO)
                         library_files.append(clean_path(trailer))
                 except KeyError:
                     pass
@@ -301,12 +310,22 @@ def show_movie_submenu():
             library_files.extend(sub_files)
             library_files.extend(sub_trailers)
         elif f.startswith('stack://'):
-            library_files.extend( decode_stacked(f) )
+            stack = decode_stacked(f)
+            library_files.extend(stack)
+            for m in stack:
+                try:
+                    trailer = m['trailer']
+                    if not trailer.startswith('http://'):
+                        log("Found a trailer", xbmc.LOGINFO)
+                        library_files.append(clean_path(trailer))
+                except KeyError:
+                    pass
         else:
             library_files.append(f)
             try:
                 trailer = m['trailer']
                 if not trailer.startswith('http://'):
+                    log("Found a trailer", xbmc.LOGINFO)
                     library_files.append(clean_path(trailer))
             except KeyError:
                 pass
