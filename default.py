@@ -286,7 +286,7 @@ def show_movie_submenu():
     done = 10
     progress.update(done, __language__(30217))
     log("SEARCHING MOVIES", xbmc.LOGNOTICE)
-    # this magic section adds the files from trailers and sets!
+
     for m in movies:
         f = clean_path(m['file'])
 
@@ -295,40 +295,16 @@ def show_movie_submenu():
             set_files = eval(xbmc.executeJSONRPC(json.encode('utf-8')))
 
             sub_files = []
-            sub_trailers =  []
 
             for item in set_files['result']['files']:
                 sub_files.append(clean_path(item['file']))
-                try:
-                    trailer = item['trailer']
-                    if not trailer.startswith('http://'):
-                        log("Found a trailer", xbmc.LOGINFO)
-                        library_files.append(clean_path(trailer))
-                except KeyError:
-                    pass
 
             library_files.extend(sub_files)
-            library_files.extend(sub_trailers)
         elif f.startswith('stack://'):
             stack = decode_stacked(f)
             library_files.extend(stack)
-            for m in stack:
-                try:
-                    trailer = m['trailer']
-                    if not trailer.startswith('http://'):
-                        log("Found a trailer", xbmc.LOGINFO)
-                        library_files.append(clean_path(trailer))
-                except KeyError:
-                    pass
         else:
             library_files.append(f)
-            try:
-                trailer = m['trailer']
-                if not trailer.startswith('http://'):
-                    log("Found a trailer", xbmc.LOGINFO)
-                    library_files.append(clean_path(trailer))
-            except KeyError:
-                pass
 
     library_files = set(library_files)
     
