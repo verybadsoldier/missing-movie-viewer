@@ -208,7 +208,7 @@ def get_files(path, progress, done):
         result = eval(xbmc.executeJSONRPC(json.encode('utf-8')))
     except NameError:
         return results
-    if 'files' not in result['result']:
+    if ('result' not in result or 'files' not in result['result']):
         return results
 
     for item in result['result']['files']:
