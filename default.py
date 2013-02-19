@@ -115,20 +115,8 @@ def get_movie_sources():
 
     sources = remove_duplicates(get_sources())
 
-    results = []
-    for f in files:
-       for s in sources:
-            if f[-1] != '/' and f.find('/') != -1:
-                f += '/'
-            elif f[-1] != os.sep and f.find(os.sep) != -1:
-                f += os.sep
-            
-            if string_startswith_case_insensitive(f,s):
-                log("%s was confirmed as a movie source using %s" % (s, f), xbmc.LOGINFO)
-                results.append(f[:len(s)])
-                sources.remove(s)
-                            
-    return results
+    return filter_confirmed_sources(sources, files)
+
 
 def get_tv_files(called_from_tv_menu, progress, done):
     result = eval(xbmc.executeJSONRPC('{"jsonrpc": "2.0", "method": "VideoLibrary.GetTVShows", "id": 1}'))
@@ -158,6 +146,28 @@ def get_tv_files(called_from_tv_menu, progress, done):
 
     return files
 
+def filter_confirmed_sources(sources, files):
+    log("FILTER: %s" % (sources), xbmc.LOGERROR)
+    results = []
+    for f in files:
+        if f[-1] != '/' and f.find('/') != -1:
+            f += '/'
+        elif f[-1] != os.sep and f.find(os.sep) != -1:
+            f += os.sep
+
+        sources_candidates = []
+        for s in sources:                
+            if string_startswith_case_insensitive(f,s):
+                sources_candidates.append(s)
+
+        if sources_candidates:
+            longest_source = max(sources_candidates, key=len) #get the longest source so we choose the 'best' source if multiple sources do fit
+            log("%s was confirmed as a source using %s" % (longest_source, f), xbmc.LOGINFO)
+            results.append(f[:len(longest_source)])
+            sources.remove(longest_source)
+
+    return results
+
 def get_tv_sources(progress, done):
     files = get_tv_files(False, progress, done)
     files = [ os.path.dirname(f) for f in files ]
@@ -165,20 +175,7 @@ def get_tv_sources(progress, done):
 
     sources = remove_duplicates(get_sources())
 
-    results = []
-    for f in files:
-        for s in sources:
-            if f[-1] != '/' and f.find('/') != -1:
-                f += '/'
-            elif f[-1] != os.sep and f.find(os.sep) != -1:
-                f += os.sep
-                
-            if string_startswith_case_insensitive(f,s):
-                log("%s was confirmed as a TV source using %s" % (s, f), xbmc.LOGINFO)
-                results.append(f[:len(s)])
-                sources.remove(s)
-
-    return results
+    return filter_confirmed_sources(sources, files)
 
 def file_has_extensions(filename, extensions):
     # get the file extension, without a leading colon.
